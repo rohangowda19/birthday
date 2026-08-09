@@ -18,6 +18,10 @@ const authRoutes = require('./routes/auth');
 const requestRoutes = require('./routes/requests');
 
 const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`[server] UPI Relay backend listening on port ${PORT}`);
+});
 const CLIENT_ORIGINS = (process.env.CLIENT_ORIGIN || 'http://localhost:5173')
   .split(',')
   .map((s) => s.trim());
