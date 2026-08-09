@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: upi-relay-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: COOKIE_SECURE
+        value: true
+      - key: REQUEST_EXPIRY_MINUTES
+        value: 10
