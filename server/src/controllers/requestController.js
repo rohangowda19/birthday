@@ -1,6 +1,7 @@
 const Request = require('../models/Request');
 const PaymentLog = require('../models/PaymentLog');
 const { parseUpiUri, buildUpiPayLink } = require('../utils/qrParser');
+const asyncHandler = require('../utils/asyncHandler');
 
 const EXPIRY_MINUTES = Number(process.env.REQUEST_EXPIRY_MINUTES || 10);
 
@@ -17,7 +18,7 @@ async function expireStaleRequests() {
 }
 
 // POST /api/requests  (member) - scans a QR and creates a relay request
-async function createRequest(req, res) {
+const createRequest = asyncHandler(async (req, res) => {
   const { rawQR, amountOverride } = req.body;
   if (!rawQR) return res.status(400).json({ message: 'rawQR is required' });
 
@@ -62,17 +63,17 @@ async function createRequest(req, res) {
   io.to('admins').emit('request:new', populated);
 
   res.status(201).json({ request: populated });
-}
+});
 
 // GET /api/requests/mine (member) - the requester's own requests
-async function myRequests(req, res) {
+const myRequests = asyncHandler(async (req, res) => {
   await expireStaleRequests();
   const requests = await Request.find({ requester: req.user._id }).sort({ createdAt: -1 }).limit(100);
   res.json({ requests });
-}
+});
 
 // GET /api/requests/:id (member owns it, or admin)
-async function getRequest(req, res) {
+const getRequest = asyncHandler(async (req, res) => {
   await expireStaleRequests();
   const request = await Request.findById(req.params.id).populate('requester', 'name email');
   if (!request) return res.status(404).json({ message: 'Request not found' });
@@ -83,24 +84,25 @@ async function getRequest(req, res) {
   }
 
   res.json({ request });
-}
+});
 
 // GET /api/requests (admin) - list with filters/search/pagination
-async function listRequests(req, res) {
+const listRequests = asyncHandler(async (req, res) => {
   await expireStaleRequests();
 
   const { status, search, page = 1, limit = 20 } = req.query;
   const query = {};
   if (status && status !== 'all') query.status = status;
   if (search) {
+    const escaped = String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     query.$or = [
-      { merchantName: { $regex: search, $options: 'i' } },
-      { merchantUPI: { $regex: search, $options: 'i' } },
+      { merchantName: { $regex: escaped, $options: 'i' } },
+      { merchantUPI: { $regex: escaped, $options: 'i' } },
     ];
   }
 
-  const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(100, Math.max(1, Number(limit)));
+  const pageNum = Math.max(1, Number(page) || 1);
+  const limitNum = Math.min(100, Math.max(1, Number(limit) || 20));
 
   const [requests, total] = await Promise.all([
     Request.find(query)
@@ -112,10 +114,10 @@ async function listRequests(req, res) {
   ]);
 
   res.json({ requests, total, page: pageNum, pages: Math.ceil(total / limitNum) });
-}
+});
 
 // GET /api/requests/stats/summary (admin)
-async function stats(req, res) {
+const stats = asyncHandler(async (req, res) => {
   await expireStaleRequests();
 
   const startOfDay = new Date();
@@ -130,7 +132,7 @@ async function stats(req, res) {
   ]);
 
   res.json({ todayRequests, todayPaid, pending, rejected, completed });
-}
+});
 
 async function transition(req, res, { from, to }) {
   const request = await Request.findById(req.params.id);
@@ -163,26 +165,22 @@ async function transition(req, res, { from, to }) {
 }
 
 // POST /api/requests/:id/approve (admin)
-async function approve(req, res) {
-  return transition(req, res, { from: ['pending'], to: 'approved' });
-}
+const approve = asyncHandler((req, res) => transition(req, res, { from: ['pending'], to: 'approved' }));
 
 // POST /api/requests/:id/reject (admin)
-async function reject(req, res) {
-  return transition(req, res, { from: ['pending', 'approved'], to: 'rejected' });
-}
+const reject = asyncHandler((req, res) =>
+  transition(req, res, { from: ['pending', 'approved'], to: 'rejected' })
+);
 
 // POST /api/requests/:id/paid (admin) - admin confirms they manually completed
 // the payment inside their own UPI app. This endpoint never touches any
 // payment rail itself; it only records what the human already did.
-async function markPaid(req, res) {
-  return transition(req, res, { from: ['approved'], to: 'paid' });
-}
+const markPaid = asyncHandler((req, res) => transition(req, res, { from: ['approved'], to: 'paid' }));
 
 // GET /api/requests/:id/pay-link (admin) - builds the deep link to open the
 // admin's own installed UPI app, pre-filled. Opening it is the admin's
 // action; nothing here submits or authorizes a payment.
-async function payLink(req, res) {
+const payLink = asyncHandler(async (req, res) => {
   const request = await Request.findById(req.params.id);
   if (!request) return res.status(404).json({ message: 'Request not found' });
   if (request.status !== 'approved') {
@@ -199,10 +197,10 @@ async function payLink(req, res) {
   });
 
   res.json({ link });
-}
+});
 
 // GET /api/requests/export/csv (admin)
-async function exportCsv(req, res) {
+const exportCsv = asyncHandler(async (req, res) => {
   const requests = await Request.find().populate('requester', 'name email').sort({ createdAt: -1 }).limit(5000);
 
   const header = [
@@ -244,7 +242,7 @@ async function exportCsv(req, res) {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename="upi-relay-requests.csv"');
   res.send(csv);
-}
+});
 
 module.exports = {
   createRequest,

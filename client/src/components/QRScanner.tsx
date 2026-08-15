@@ -8,6 +8,23 @@ interface Props {
 
 const ELEMENT_ID = 'upi-qr-reader';
 
+function getUnsupportedReason(): string | null {
+  if (typeof window === 'undefined') return null;
+
+  // Browsers only allow camera access on HTTPS, or on localhost as a
+  // special exception for local development. Any other plain-HTTP origin
+  // (e.g. a LAN IP like http://10.0.0.5:5173) gets silently denied camera
+  // access, which crashes libraries that assume it's available. Detect it
+  // up front and show a clear message instead of letting it throw.
+  if (!window.isSecureContext) {
+    return 'Camera access needs a secure (HTTPS) connection. Open this site over HTTPS, or use localhost for local testing.';
+  }
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    return "This browser doesn't support camera access here.";
+  }
+  return null;
+}
+
 export default function QRScanner({ onScan, active }: Props) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -16,24 +33,41 @@ export default function QRScanner({ onScan, active }: Props) {
   useEffect(() => {
     if (!active) return;
 
+    const unsupportedReason = getUnsupportedReason();
+    if (unsupportedReason) {
+      setError(unsupportedReason);
+      setStarting(false);
+      return;
+    }
+
     let cancelled = false;
     setStarting(true);
     setError(null);
 
-    const scanner = new Html5Qrcode(ELEMENT_ID);
-    scannerRef.current = scanner;
+    let scanner: Html5Qrcode;
+    try {
+      scanner = new Html5Qrcode(ELEMENT_ID);
+      scannerRef.current = scanner;
+    } catch (err) {
+      setError('Could not start the scanner on this device.');
+      setStarting(false);
+      console.error(err);
+      return;
+    }
 
-    scanner
-      .start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          if (cancelled) return;
-          onScan(decodedText);
-        },
-        () => {
-          // per-frame scan failures are expected while searching; ignore
-        }
+    Promise.resolve()
+      .then(() =>
+        scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            if (cancelled) return;
+            onScan(decodedText);
+          },
+          () => {
+            // per-frame scan failures are expected while searching; ignore
+          }
+        )
       )
       .then(() => {
         if (!cancelled) setStarting(false);
@@ -52,7 +86,7 @@ export default function QRScanner({ onScan, active }: Props) {
         .stop()
         .then(() => scanner.clear())
         .catch(() => {
-          /* already stopped */
+          /* already stopped, or never started */
         });
     };
   }, [active, onScan]);
@@ -68,7 +102,7 @@ export default function QRScanner({ onScan, active }: Props) {
           Starting camera…
         </p>
       )}
-      {error && <p className="text-center text-sm mt-3 text-rust-600">{error}</p>}
+      {error && <p className="text-center text-sm mt-3 text-rust-600 max-w-sm mx-auto">{error}</p>}
     </div>
   );
 }
