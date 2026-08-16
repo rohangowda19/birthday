@@ -1,10 +1,11 @@
 import { useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -15,8 +16,11 @@ export default function Login() {
     setError(null);
     setSubmitting(true);
     try {
-      await login(email, password);
-      navigate('/');
+      const user = await login(email, password);
+      // Send them back to wherever they were headed (e.g. /scan after
+      // tapping "masala puri"), or a sensible default based on role.
+      const from = (location.state as { from?: { pathname: string } } | null)?.from?.pathname;
+      navigate(from || (user.role === 'admin' ? '/admin' : '/scan'));
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Login failed');
     } finally {

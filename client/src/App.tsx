@@ -6,7 +6,8 @@ import Login from './pages/Login';
 import Scan from './pages/Scan';
 import RequestStatus from './pages/RequestStatus';
 import AdminDashboard from './pages/AdminDashboard';
-import Home from './pages/Home';
+import GiftLanding from './pages/GiftLanding';
+import GiftReveal from './pages/GiftReveal';
 
 export default function App() {
   return (
@@ -14,15 +15,11 @@ export default function App() {
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            {/* Public gift-reveal flow — no login needed to view these */}
+            <Route path="/" element={<GiftLanding />} />
+            <Route path="/reveal" element={<GiftReveal />} />
+
             <Route path="/login" element={<Login />} />
-            <Route
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
             <Route
               path="/scan"
               element={

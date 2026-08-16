@@ -5,7 +5,7 @@ import * as authApi from '../api/auth';
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
 }
 
@@ -26,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function login(email: string, password: string) {
     const loggedIn = await authApi.login(email, password);
     setUser(loggedIn);
+    return loggedIn;
   }
 
   async function logout() {
