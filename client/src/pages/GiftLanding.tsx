@@ -1,14 +1,18 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import BackgroundMedia from '../components/BackgroundMedia';
 
 // ── Edit this to personalize ────────────────────────────────────────────
-const HEADLINE = "Something's here\nfor you";
+const HEADLINE = 'Happy Birthday';
 const SUBTEXT = 'No spoilers. No hints.\nJust tap below.';
 const FOOTNOTE = "(it's a good one, trust me)";
-// To use a real photo of your friend as the background, drop a file at
-// client/public/gift/landing.jpg and it'll be picked up automatically.
-// Until then, a warm gradient stands in for it.
-const BACKGROUND_IMAGE = '/gift/landing.jpg';
+// Photo background: drop a file at client/public/gift/landing.jpg (or any
+// name/extension) and set it below.
+const BACKGROUND_IMAGE = '/gift/landing.jpeg';
+// Video background (optional): drop a file at client/public/gift/landing.mp4
+// and set it below. If set, this takes priority over BACKGROUND_IMAGE.
+// Leave as undefined to just use the photo.
+const BACKGROUND_VIDEO: string | undefined = undefined; // e.g. '/gift/landing.mp4'
 // ─────────────────────────────────────────────────────────────────────────
 
 export default function GiftLanding() {
@@ -16,11 +20,7 @@ export default function GiftLanding() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#3A2E1F] via-[#241A12] to-[#120D08]">
-      {/* Background photo (falls back to gradient if the file doesn't exist) */}
-      <div
-        className="absolute inset-0 bg-cover bg-center opacity-40"
-        style={{ backgroundImage: `url(${BACKGROUND_IMAGE})` }}
-      />
+      <BackgroundMedia imageSrc={BACKGROUND_IMAGE} videoSrc={BACKGROUND_VIDEO} opacityClassName="opacity-40" />
       <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/50 to-black/80" />
 
       {/* Floating balloons — ambient, respects reduced-motion via global CSS */}
@@ -45,7 +45,7 @@ export default function GiftLanding() {
           transition={{ duration: 0.6, delay: 0.15 }}
           className="font-script text-5xl sm:text-6xl leading-tight text-brass-400 whitespace-pre-line"
         >
-          {HEADLINE} <span aria-hidden>👀</span>
+          {HEADLINE} <span aria-hidden>🎉</span>
         </motion.h1>
 
         <motion.p
