@@ -20,8 +20,8 @@ export default function GiftLanding() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gradient-to-b from-[#3A2E1F] via-[#241A12] to-[#120D08]">
-      <BackgroundMedia imageSrc={BACKGROUND_IMAGE} videoSrc={BACKGROUND_VIDEO} opacityClassName="opacity-40" />
-      <div className="absolute inset-0 bg-gradient-to-b from-black/10 via-black/50 to-black/80" />
+      <BackgroundMedia imageSrc={BACKGROUND_IMAGE} videoSrc={BACKGROUND_VIDEO} opacityClassName="opacity-70" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/5 via-black/25 to-black/60" />
 
       {/* Floating balloons — ambient, respects reduced-motion via global CSS */}
       <Balloon className="left-[8%] bottom-[12%]" color="#EF4444" delay={0} />
