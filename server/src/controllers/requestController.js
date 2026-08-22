@@ -244,6 +244,21 @@ const exportCsv = asyncHandler(async (req, res) => {
   res.send(csv);
 });
 
+// DELETE /api/requests/:id (admin) - permanently removes a request and its
+// audit log entries. Use for cleaning up test/old requests.
+const deleteRequest = asyncHandler(async (req, res) => {
+  const request = await Request.findById(req.params.id);
+  if (!request) return res.status(404).json({ message: 'Request not found' });
+
+  await PaymentLog.deleteMany({ request: request._id });
+  await request.deleteOne();
+
+  const io = getIO(req);
+  io.to('admins').emit('request:deleted', { id: request._id.toString() });
+
+  res.json({ message: 'Request deleted' });
+});
+
 module.exports = {
   createRequest,
   myRequests,
@@ -255,4 +270,5 @@ module.exports = {
   markPaid,
   payLink,
   exportCsv,
+  deleteRequest,
 };

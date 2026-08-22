@@ -2,15 +2,17 @@ import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import Layout from '../components/Layout';
 import RequestStub from '../components/RequestStub';
-import { getRequest, myRequests } from '../api/requests';
+import { getRequest } from '../api/requests';
 import { useSocket } from '../hooks/useSocket';
 import type { RelayRequest } from '../types';
 
+// Intentionally shows only the single request the requester just sent —
+// no history of past requests. Keeps things private: a friend using this
+// shouldn't see a trail of everything they've scanned before.
 export default function RequestStatus() {
   const { id } = useParams();
   const { socket } = useSocket();
   const [request, setRequest] = useState<RelayRequest | null>(null);
-  const [history, setHistory] = useState<RelayRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -19,10 +21,6 @@ export default function RequestStatus() {
       .then(setRequest)
       .finally(() => setLoading(false));
   }, [id]);
-
-  useEffect(() => {
-    myRequests().then(setHistory).catch(() => {});
-  }, [request?.status]);
 
   useEffect(() => {
     if (!socket) return;
@@ -50,24 +48,6 @@ export default function RequestStatus() {
         >
           Scan another QR
         </Link>
-
-        {history.length > 1 && (
-          <div className="mt-10">
-            <p className="font-mono text-xs uppercase tracking-wide text-ink-900/50 dark:text-paper-100/50 mb-3">
-              Your recent requests
-            </p>
-            <div className="space-y-3">
-              {history
-                .filter((r) => r._id !== id)
-                .slice(0, 5)
-                .map((r) => (
-                  <Link key={r._id} to={`/status/${r._id}`}>
-                    <RequestStub request={r} />
-                  </Link>
-                ))}
-            </div>
-          </div>
-        )}
       </div>
     </Layout>
   );

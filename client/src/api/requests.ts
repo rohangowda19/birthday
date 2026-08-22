@@ -54,6 +54,10 @@ export async function getPayLink(id: string) {
   return data.link;
 }
 
+export async function deleteRequest(id: string) {
+  await api.delete(`/requests/${id}`);
+}
+
 export function exportCsvUrl() {
   const baseURL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
   return `${baseURL}/requests/export/csv`;

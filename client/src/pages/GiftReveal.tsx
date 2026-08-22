@@ -157,7 +157,7 @@ export default function GiftReveal() {
           viewport={{ once: true }}
           whileTap={{ scale: 0.97 }}
           onClick={() => navigate('/scan')}
-          className="w-full sm:w-72 mx-auto py-8 rounded-2xl bg-gradient-to-br from-[#FF3D9A] to-[#7C3AED] text-white shadow-[0_20px_50px_-15px_rgba(255,61,154,0.5)] flex flex-col items-center gap-2"
+          className="w-full sm:w-72 mx-auto py-8 rounded-2xl bg-gradient-to-br from-[#FFD166] to-[#C9820A] text-[#2A1B02] shadow-[0_20px_50px_-15px_rgba(255,193,71,0.55)] flex flex-col items-center gap-2"
         >
           <span className="text-4xl" aria-hidden>
             🍲
@@ -167,7 +167,7 @@ export default function GiftReveal() {
             <br />
             masala puri
           </span>
-          <span className="text-xs text-white/70">(tap when ready!)</span>
+          <span className="text-xs text-[#2A1B02]/70">(tap when ready!)</span>
         </motion.button>
       </section>
     </div>

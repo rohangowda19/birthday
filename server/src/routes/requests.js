@@ -27,5 +27,6 @@ router.post('/:id/approve', requireAuth, requireRole('admin'), ctrl.approve);
 router.post('/:id/reject', requireAuth, requireRole('admin'), ctrl.reject);
 router.post('/:id/paid', requireAuth, requireRole('admin'), ctrl.markPaid);
 router.get('/:id/pay-link', requireAuth, requireRole('admin'), ctrl.payLink);
+router.delete('/:id', requireAuth, requireRole('admin'), ctrl.deleteRequest);
 
 module.exports = router;

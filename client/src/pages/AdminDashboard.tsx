@@ -3,7 +3,7 @@ import Layout from '../components/Layout';
 import RequestStub from '../components/RequestStub';
 import { useSocket } from '../hooks/useSocket';
 import { useNotify } from '../hooks/useNotify';
-import { listRequests, approveRequest, rejectRequest, markPaid, getPayLink } from '../api/requests';
+import { listRequests, approveRequest, rejectRequest, markPaid, getPayLink, deleteRequest } from '../api/requests';
 import type { RelayRequest } from '../types';
 
 // Simple, single-friend view: just the requests that still need your
@@ -101,6 +101,17 @@ export default function AdminDashboard() {
     }
   }
 
+  async function handleDelete(id: string) {
+    if (!window.confirm('Delete this request permanently? This cannot be undone.')) return;
+    setBusyId(id);
+    try {
+      await deleteRequest(id);
+      await refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   return (
     <Layout>
       <h1 className="font-display text-2xl mb-6">Requests</h1>
@@ -167,7 +178,15 @@ export default function AdminDashboard() {
           {showHistory && (
             <div className="space-y-3 mt-4">
               {history.map((r) => (
-                <RequestStub key={r._id} request={r} showRequester />
+                <RequestStub key={r._id} request={r} showRequester>
+                  <button
+                    onClick={() => handleDelete(r._id)}
+                    disabled={busyId === r._id}
+                    className="px-3 py-1.5 rounded border border-rust-600 text-rust-600 text-sm font-medium disabled:opacity-60"
+                  >
+                    Delete
+                  </button>
+                </RequestStub>
               ))}
             </div>
           )}
