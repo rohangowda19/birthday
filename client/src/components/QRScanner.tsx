@@ -29,6 +29,8 @@ export default function QRScanner({ onScan, active }: Props) {
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starting, setStarting] = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   useEffect(() => {
     if (!active) return;
@@ -43,6 +45,8 @@ export default function QRScanner({ onScan, active }: Props) {
     let cancelled = false;
     setStarting(true);
     setError(null);
+    setTorchSupported(false);
+    setTorchOn(false);
 
     let scanner: Html5Qrcode;
     try {
@@ -59,7 +63,25 @@ export default function QRScanner({ onScan, active }: Props) {
       .then(() =>
         scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          {
+            fps: 12,
+            // Use most of the visible camera frame as the scan area instead
+            // of a small fixed box — much easier to line up a QR code with,
+            // especially on phones where the preview itself is already small.
+            qrbox: (viewfinderWidth, viewfinderHeight) => {
+              const size = Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.85);
+              return { width: size, height: size };
+            },
+            // Ask for a higher-resolution feed where the device supports it —
+            // more detail helps the decoder cope with glare, low light, or a
+            // slightly angled/blurry shot of the code.
+            videoConstraints: {
+              facingMode: 'environment',
+              width: { ideal: 1920 },
+              height: { ideal: 1920 },
+              advanced: [{ focusMode: 'continuous' } as unknown as MediaTrackConstraintSet],
+            },
+          },
           (decodedText) => {
             if (cancelled) return;
             onScan(decodedText);
@@ -70,7 +92,19 @@ export default function QRScanner({ onScan, active }: Props) {
         )
       )
       .then(() => {
-        if (!cancelled) setStarting(false);
+        if (cancelled) return;
+        setStarting(false);
+
+        // Flashlight support varies a lot by device/browser — check after
+        // the camera is actually running, and just hide the button if it's
+        // not available rather than erroring.
+        try {
+          const capabilities = scanner.getRunningTrackCameraCapabilities();
+          const torchFeature = capabilities.torchFeature();
+          setTorchSupported(torchFeature.isSupported());
+        } catch {
+          setTorchSupported(false);
+        }
       })
       .catch((err) => {
         if (!cancelled) {
@@ -91,18 +125,51 @@ export default function QRScanner({ onScan, active }: Props) {
     };
   }, [active, onScan]);
 
+  function toggleTorch() {
+    const scanner = scannerRef.current;
+    if (!scanner) return;
+    try {
+      const capabilities = scanner.getRunningTrackCameraCapabilities();
+      const torchFeature = capabilities.torchFeature();
+      const next = !torchOn;
+      torchFeature.apply(next).then(() => setTorchOn(next));
+    } catch (err) {
+      console.error('Could not toggle flashlight:', err);
+    }
+  }
+
   return (
     <div className="relative">
       <div
         id={ELEMENT_ID}
-        className="overflow-hidden rounded-lg border-2 border-brass-500/40 aspect-square w-full max-w-sm mx-auto bg-ink-900"
+        className="overflow-hidden rounded-lg border-2 border-brass-500/40 aspect-square w-full max-w-md mx-auto bg-ink-900"
       />
+
+      {torchSupported && !starting && !error && (
+        <button
+          onClick={toggleTorch}
+          className={`absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center text-lg backdrop-blur-sm transition-colors ${
+            torchOn ? 'bg-brass-500 text-white' : 'bg-black/40 text-white/90'
+          }`}
+          aria-label={torchOn ? 'Turn off flashlight' : 'Turn on flashlight for glare or low light'}
+          type="button"
+        >
+          💡
+        </button>
+      )}
+
       {starting && (
         <p className="text-center text-sm mt-3 font-mono text-ink-900/60 dark:text-paper-100/60">
           Starting camera…
         </p>
       )}
       {error && <p className="text-center text-sm mt-3 text-rust-600 max-w-sm mx-auto">{error}</p>}
+      {!starting && !error && (
+        <p className="text-center text-xs mt-3 text-ink-900/50 dark:text-paper-100/50 max-w-sm mx-auto">
+          Trouble scanning? Fill the box with the code, avoid glare/reflections, and try the flashlight
+          in low light.
+        </p>
+      )}
     </div>
   );
 }
